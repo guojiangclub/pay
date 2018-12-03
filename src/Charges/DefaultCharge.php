@@ -16,15 +16,16 @@ use iBrand\Component\Pay\Contracts\PayChargeContract;
 use iBrand\Component\Pay\Exceptions\GatewayException;
 use iBrand\Component\Pay\Models\Charge;
 use Yansongda\Pay\Pay;
+use Yansongda\Pay\Exceptions\GatewayException as PayException;
 
 class DefaultCharge extends BaseCharge implements PayChargeContract
 {
     /**
      * 创建支付请求
      *
-     * @param array  $data 支付数据
+     * @param array $data 支付数据
      * @param string $type 业务类型
-     * @param string $app  支付参数APP，config payments 数组中的配置项名称
+     * @param string $app 支付参数APP，config payments 数组中的配置项名称
      *
      * @return mixed
      *
@@ -39,7 +40,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
         }
 
         $modelData = array_merge(['app' => $app, 'type' => $type], array_only($data, ['channel', 'order_no', 'client_ip', 'subject', 'amount',
-            'body', 'extra', 'time_expire', 'metadata', 'description', ]));
+            'body', 'extra', 'time_expire', 'metadata', 'description',]));
 
         $payModel = Charge::create($modelData);
 
@@ -47,7 +48,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
             $credential = null;
             $out_trade_no = null;
 
-            $config = config('ibrand.pay.default.wechat.'.$app);
+            $config = config('ibrand.pay.default.wechat.' . $app);
 
             switch ($data['channel']) {
                 case 'wx_pub':
@@ -124,9 +125,9 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
         $config = $this->getConfig('alipay');
 
         $delayTime = app('system_setting')->getSetting('order_auto_cancel_time') ? app('system_setting')->getSetting('order_auto_cancel_time') : 1440;
-        $time_expire = $delayTime.'m';
+        $time_expire = $delayTime . 'm';
         if ($submit_time and ($gap = Carbon::now()->timestamp - strtotime($submit_time)) > 0) {
-            $time_expire = ($delayTime - floor($gap / 60)).'m';
+            $time_expire = ($delayTime - floor($gap / 60)) . 'm';
         }
 
         $extra = $this->createExtra($channel, '', $extra, $type);
@@ -147,12 +148,12 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
             $chargeData['quit_url'] = $extra['cancel_url'];
         }
 
-        $return_url = $extra['success_url'].$order_no;
+        $return_url = $extra['success_url'] . $order_no;
         $return_url = str_replace('/', '~', $return_url);
         $return_url = str_replace('?', '@', $return_url);
         $return_url = str_replace('#', '*', $return_url);
 
-        $config['return_url'] = $config['return_url'].'/'.$return_url; //同步通知url
+        $config['return_url'] = $config['return_url'] . '/' . $return_url; //同步通知url
         $config['notify_url'] = $config['notify_url']; //异步通知url
 
         $ali_pay = [];
@@ -190,31 +191,49 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
 
     public function find($charge_id)
     {
-        $charge = Charge::where('charge_id',$charge_id)->first();
+        $charge = Charge::where('charge_id', $charge_id)->first();
 
-        $config = config('ibrand.pay.default.wechat.'.$charge->app);
+        $config = config('ibrand.pay.default.wechat.' . $charge->app);
 
-        $result = Pay::wechat($config)->find($charge->out_trade_no);
+        $order = [
+            'out_trade_no' => $charge->out_trade_no,
+        ];
 
-        if ($result['return_code'] == 'FAIL'){
-            $charge->failure_code = $result['return_code'];
-            $charge->failure_msg = $result['return_msg'];
+        if ($charge->channel == 'wx_lite') {
+            $order['type'] = 'miniapp';
+        }
+
+        try{
+
+            $result = Pay::wechat($config)->find($order);
+            $charge->transaction_meta = json_encode($result);
+            $charge->transaction_no = $result['transaction_id'];
+            $charge->time_paid = Carbon::createFromTimestamp(strtotime($result['time_end']));
+            $charge->paid = 1;
             $charge->save();
+
             return $charge;
-        };
 
-        if ($result['result_code'] == 'FAIL' || $result['trade_state'] != 'SUCCESS') {
-            $charge->failure_code = $result['err_code'];
-            $charge->failure_msg = $result['err_code_des'];
-            $charge->save();
-        };
+        }catch (PayException $exception){
+            $result = $exception->raw;
+            if ($result['return_code'] == 'FAIL') {
+                $charge->failure_code = $result['return_code'];
+                $charge->failure_msg = $result['return_msg'];
+                $charge->save();
+                return $charge;
+            };
 
-        $charge->transaction_meta = json_encode($result);
-        $charge->transaction_no = $result['transaction_id'];
-        $charge->time_paid = Carbon::createFromTimestamp(strtotime($result['time_end']));
-        $charge->paid = 1;
-        $charge->save();
+            if ($result['result_code'] == 'FAIL' || $result['trade_state'] != 'SUCCESS') {
+                $charge->failure_code = $result['err_code'];
+                $charge->failure_msg = $result['err_code_des'];
+                $charge->save();
+            };
+        }
 
-        return $charge;
+
+
+
+
+
     }
 }
