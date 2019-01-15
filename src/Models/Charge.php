@@ -27,6 +27,7 @@ class Charge extends Model
         $client = new Client();
 
         $this->charge_id = 'ch_'.$client->generateId($size = 24);
+        $this->table = config('ibrand.app.database.prefix', 'ibrand_').'pay_charge';
     }
 
     public function setMetadataAttribute($value)
