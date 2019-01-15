@@ -39,9 +39,9 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
 			throw new \InvalidArgumentException("Unsupported channel [{$data['channel']}]");
 		}
 
-		$charge = Charge::where('order_no', $data['order_no'])->where('paid', false)->first();
+		$charge = Charge::where('order_no', $data['order_no'])->where('paid', true)->first();
 		if ($charge) {
-			throw new GatewayException("订单：" . $data['order_no'] . '未支付');
+			throw new GatewayException("订单：" . $data['order_no'] . '已支付');
 		}
 
 		$modelData = array_merge(['app' => $app, 'type' => $type], array_only($data, ['channel', 'order_no', 'client_ip', 'subject', 'amount', 'body', 'extra', 'time_expire', 'metadata', 'description',]));
