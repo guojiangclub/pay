@@ -10,7 +10,6 @@
  */
 
 return [
-
     /*
      * 异步通知路由参数
      */
@@ -26,7 +25,6 @@ return [
 
     'default' => [
         'alipay' => [
-
             /*
              * APP_NAME，不同的应用会使用不同的支付参数，举例：
              * 在 iBrand 有商城订单支付，有活动报名支付，两个小程序是不同的 appid 甚至是不同的支付主体，所以需要配置不同的支付参数
@@ -56,7 +54,6 @@ return [
         ],
 
         'wechat' => [
-
             'default' => [
                 // 公众号 APPID
                 'app_id' => env('WECHAT_PAYMENT_APP_ID', ''),

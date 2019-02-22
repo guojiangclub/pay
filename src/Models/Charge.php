@@ -14,12 +14,26 @@ namespace iBrand\Component\Pay\Models;
 use Hidehalo\Nanoid\Client;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Class Charge.
+ */
 class Charge extends Model
 {
+    /**
+     * @var string
+     */
     protected $table = 'ibrand_pay_charge';
 
+    /**
+     * @var array
+     */
     protected $guarded = ['id'];
 
+    /**
+     * Charge constructor.
+     *
+     * @param array $attributes
+     */
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
@@ -29,6 +43,9 @@ class Charge extends Model
         $this->charge_id = 'ch_'.$client->generateId($size = 24);
     }
 
+    /**
+     * @param $value
+     */
     public function setMetadataAttribute($value)
     {
         if (!empty($value)) {
@@ -36,6 +53,9 @@ class Charge extends Model
         }
     }
 
+    /**
+     * @param $value
+     */
     public function setExtraAttribute($value)
     {
         if (!empty($value)) {
@@ -43,6 +63,11 @@ class Charge extends Model
         }
     }
 
+    /**
+     * @param $value
+     *
+     * @return mixed
+     */
     public function getMetadataAttribute($value)
     {
         if (!empty($value)) {
@@ -52,6 +77,11 @@ class Charge extends Model
         return $value;
     }
 
+    /**
+     * @param $value
+     *
+     * @return mixed
+     */
     public function getExtraAttribute($value)
     {
         if (!empty($value)) {
@@ -61,6 +91,9 @@ class Charge extends Model
         return $value;
     }
 
+    /**
+     * @param $value
+     */
     public function setCredentialAttribute($value)
     {
         if (!empty($value)) {
@@ -68,6 +101,11 @@ class Charge extends Model
         }
     }
 
+    /**
+     * @param $value
+     *
+     * @return mixed
+     */
     public function getCredentialAttribute($value)
     {
         if (!empty($value)) {
@@ -75,5 +113,16 @@ class Charge extends Model
         }
 
         return $value;
+    }
+
+    /**
+     * @param $query
+     * @param $chargeId
+     *
+     * @return mixed
+     */
+    public function scopeOfChargeId($query, $chargeId)
+    {
+        return $query->where('charge_id', $chargeId);
     }
 }

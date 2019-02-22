@@ -11,9 +11,11 @@
 
 namespace iBrand\Component\Pay\Contracts;
 
+use iBrand\Component\Pay\Models\Charge;
+
 interface PayChargeContract
 {
-    public function create(array $data, $type = 'default', $app = 'default');
+    public function create(array $data, $type = 'default', $app = 'default', Charge $charge = null);
 
     public function find($charge_id);
 }
