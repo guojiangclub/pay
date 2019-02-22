@@ -79,5 +79,10 @@ class PayServiceProvider extends ServiceProvider
             $router->post('wechat/{app}', 'WechatPayNotifyController@notify')->name('pay.wechat.notify');
             $router->post('alipay/{app}', 'AliPayNotifyController@notify')->name('pay.alipay.notify');
         });
+
+        Route::group(array_merge(['namespace' => $this->namespace]), function ($router) {
+            $router->get('payment/getCode', 'WechatPayController@getCode')->name('pay.wechat.getCode');
+            $router->get('payment/wxPay', 'WechatPayController@wxPay')->name('pay.wechat.wxPay');
+        });
     }
 }
