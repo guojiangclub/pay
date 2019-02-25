@@ -79,8 +79,6 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
             return $payModel;
         } catch (\Yansongda\Pay\Exceptions\Exception $exception) {
             throw  new GatewayException('支付通道错误');
-        } catch (\Exception $exception) {
-            throw  new GatewayException('支付失败');
         }
     }
 
