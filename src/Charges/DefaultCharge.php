@@ -36,7 +36,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
     {
         $this->validateParams($data);
 
-        if (!in_array($data['channel'], ['wx_pub', 'wx_pub_qr', 'wx_lite', 'alipay_wap', 'alipay_pc_direct'])) {
+        if (is_null($charge) && !in_array($data['channel'], ['wx_pub', 'wx_pub_qr', 'wx_lite', 'alipay_wap', 'alipay_pc_direct'])) {
             throw new \InvalidArgumentException("Unsupported channel [{$data['channel']}]");
         }
 
