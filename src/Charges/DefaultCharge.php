@@ -154,6 +154,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
 
         if (isset($data['extra']['successUrl'])) {
             $chargeData['success_url'] = $data['extra']['successUrl'];
+            $config['return_url'] = $data['extra']['successUrl'];
         }
 
         if ('alipay_pc_direct' == $data['channel']) {
