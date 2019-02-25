@@ -51,6 +51,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
             $payModel = Charge::create($modelData);
         } else {
             $payModel = $charge;
+            $data = $charge->toArray();
         }
 
         try {
