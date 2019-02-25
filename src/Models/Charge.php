@@ -125,4 +125,14 @@ class Charge extends Model
     {
         return $query->where('charge_id', $chargeId);
     }
+
+    /**
+     * @param $query
+     * @param $tradeNo
+     * @return mixed
+     */
+    public function scopeOfOutTradeNo($query, $tradeNo)
+    {
+        return $query->where('out_trade_no', $tradeNo);
+    }
 }

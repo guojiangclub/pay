@@ -23,9 +23,9 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
     /**
      * 创建支付请求
      *
-     * @param array  $data   支付数据
-     * @param string $type   业务类型
-     * @param string $app    支付参数APP，config payments 数组中的配置项名称
+     * @param array $data 支付数据
+     * @param string $type 业务类型
+     * @param string $app 支付参数APP，config payments 数组中的配置项名称
      * @param Charge $charge model.
      *
      * @return mixed
@@ -44,7 +44,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
             $charge = Charge::where('order_no', $data['order_no'])->where('paid', true)->first();
 
             if ($charge) {
-                throw new GatewayException('订单：'.$data['order_no'].'已支付');
+                throw new GatewayException('订单：' . $data['order_no'] . '已支付');
             }
 
             $modelData = array_merge(['app' => $app, 'type' => $type], array_only($data, ['channel', 'order_no', 'client_ip', 'subject', 'amount', 'body', 'extra', 'time_expire', 'metadata', 'description']));
@@ -57,19 +57,19 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
         try {
             $credential = null;
             $out_trade_no = null;
-
-            $config = config('ibrand.pay.default.wechat.'.$app);
-
             switch ($data['channel']) {
                 case 'wx_pub':
                 case 'wx_pub_qr':
                 case 'wx_lite':
+                    $config = config('ibrand.pay.default.wechat.' . $app);
                     $config['notify_url'] = route('pay.wechat.notify', ['app' => $app]);
                     $credential = $this->createWechatCharge($data, $config, $out_trade_no);
                     break;
                 case 'alipay_wap':
                 case 'alipay_pc_direct':
-                    /*return $this->createAliCharge($user_id, $channel, $type, $order_no, $amount, $subject, $body, $ip, $openid, $extra, $submit_time);*/
+                    $config = config('ibrand.pay.default.alipay.' . $app);
+                    $config['notify_url'] = route('pay.alipay.notify', ['app' => $app]);
+                    $credential = $this->createAlipayCharge($data, $config, $out_trade_no);
             }
 
             $payModel->credential = $credential;
@@ -92,7 +92,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
      */
     protected function createWechatCharge($data, $config, &$out_trade_no)
     {
-        $out_trade_no = $this->getWxPayCode($data['order_no'], $data['channel']);
+        $out_trade_no = $this->getOutTradeNo($data['order_no'], $data['channel']);
 
         $chargeData = [
             'body' => mb_strcut($data['body'], 0, 32, 'UTF-8'),
@@ -130,80 +130,60 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
         }
     }
 
-    protected function createAliCharge($user_id, $channel, $type = 'order', $order_no, $amount, $subject, $body, $ip = '127.0.0.1', $openid = '', $extra = [], $submit_time = '')
+    public function createAlipayCharge($data, $config, &$out_trade_no)
     {
-        $config = $this->getConfig('alipay');
-
-        $delayTime = app('system_setting')->getSetting('order_auto_cancel_time') ? app('system_setting')->getSetting('order_auto_cancel_time') : 1440;
-        $time_expire = $delayTime.'m';
-        if ($submit_time and ($gap = Carbon::now()->timestamp - strtotime($submit_time)) > 0) {
-            $time_expire = ($delayTime - floor($gap / 60)).'m';
-        }
-
-        $extra = $this->createExtra($channel, '', $extra, $type);
-
-        $amount = $amount / 100;
+        $out_trade_no = $this->getOutTradeNo($data['order_no'], $data['channel']);
 
         $chargeData = [
-            'body' => mb_strcut($body, 0, 32, 'UTF-8'),
-            'out_trade_no' => $order_no,
-            'total_amount' => number_format($amount, 2, '.', ''),
-            'subject' => mb_strcut($subject, 0, 32, 'UTF-8'),
-            'client_ip' => $ip,
-            'timeout_express' => $time_expire,
-            'passback_params' => json_encode(['user_id' => $user_id, 'order_sn' => $order_no, 'type' => $type, 'channel' => $channel]),
+            'body' => mb_strcut($data['body'], 0, 32, 'UTF-8'),
+            'out_trade_no' => $out_trade_no,
+            'total_amount' => number_format($data['amount'] / 100, 2, '.', ''),
+            'subject' => mb_strcut($data['subject'], 0, 32, 'UTF-8'),
+            'client_ip' => $data['client_ip'],
         ];
 
-        if (!empty($extra['cancel_url'])) {
-            $chargeData['quit_url'] = $extra['cancel_url'];
+        if (isset($data['time_expire']) && ($gap = strtotime($data['time_expire']) - Carbon::now()->timestamp) > 0) {
+            $chargeData['timeout_express'] = floor($gap / 60) . 'm';
         }
 
-        $return_url = $extra['success_url'].$order_no;
-        $return_url = str_replace('/', '~', $return_url);
-        $return_url = str_replace('?', '@', $return_url);
-        $return_url = str_replace('#', '*', $return_url);
+        if (isset($data['metadata'])) {
+            $chargeData['passback_params'] = json_encode($data['metadata']);
+        }
 
-        $config['return_url'] = $config['return_url'].'/'.$return_url; //同步通知url
-        $config['notify_url'] = $config['notify_url']; //异步通知url
+        if (isset($data['extra']['failUrl'])) {
+            $chargeData['quit_url'] = $data['extra']['failUrl'];
+        }
 
-        $ali_pay = [];
-        if ('alipay_pc_direct' == $channel) {
-            //unset($chargeData['passback_params']);
+        if (isset($data['extra']['successUrl'])) {
+            $chargeData['success_url'] = $data['extra']['successUrl'];
+        }
+
+        if ('alipay_pc_direct' == $data['channel']) {
+
             $ali_pay = Pay::alipay($config)->web($chargeData);
-            $key = base64_encode($order_no);
-            \Cache::put($order_no, html_entity_decode($ali_pay), 1);
-            $this->createPaymentLog('create_charge', Carbon::now(), $order_no, $chargeData['out_trade_no'], '', $amount * 100, $channel, $type, 'SUCCESS', $user_id, $ali_pay);
-
-            return [
+            $key = base64_encode($out_trade_no);
+            /*return [
                 'type' => $type,
                 'order_no' => $order_no,
                 'channel' => $channel,
                 'pay_scene' => 'live',
                 'key' => $key,
-            ];
+            ];*/
         }
 
-        if ('alipay_wap' == $channel) {
+        if ('alipay_wap' == $data['channel']) {
             $ali_pay = Pay::alipay($config)->wap($chargeData);
-            $this->createPaymentLog('create_charge', Carbon::now(), $order_no, $chargeData['out_trade_no'], '', $amount * 100, $channel, $type, 'SUCCESS', $user_id, $ali_pay);
-
             return [
-                'type' => $type,
-                'order_no' => $order_no,
-                'channel' => $channel,
-                'pay_scene' => 'live',
-                'form' => html_entity_decode($ali_pay),
+                'alipay_wap' => html_entity_decode($ali_pay),
             ];
         }
-
-        return null;
     }
 
     public function find($charge_id)
     {
         $charge = Charge::where('charge_id', $charge_id)->first();
 
-        $config = config('ibrand.pay.default.wechat.'.$charge->app);
+        $config = config('ibrand.pay.default.wechat.' . $charge->app);
 
         $order = [
             'out_trade_no' => $charge->out_trade_no,
