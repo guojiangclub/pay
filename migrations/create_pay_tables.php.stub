@@ -38,7 +38,7 @@ class CreatePayTables extends Migration
             $table->string('currency')->default('cny');
             $table->string('subject');
             $table->string('body');
-            $table->string('extra')->nullable();
+            $table->text('extra')->nullable();
             $table->timestamp('time_paid')->nullable();
             $table->timestamp('time_expire')->nullable();
             $table->string('transaction_no')->nullable();
