@@ -40,7 +40,7 @@ class Charge extends Model
 
         $client = new Client();
 
-        $this->charge_id = 'ch_'.$client->generateId($size = 24);
+        $this->charge_id = 'ch_' . $client->generateId($size = 24);
     }
 
     /**
@@ -124,5 +124,15 @@ class Charge extends Model
     public function scopeOfChargeId($query, $chargeId)
     {
         return $query->where('charge_id', $chargeId);
+    }
+
+    /**
+     * @param $query
+     * @param $orderNo
+     * @return mixed
+     */
+    public function scopeOfPaidOrderNo($query, $orderNo)
+    {
+        return $query->where('order_no', $orderNo)->where('paid', 1);
     }
 }
