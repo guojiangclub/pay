@@ -126,6 +126,7 @@ class Charge extends Model
         return $query->where('charge_id', $chargeId);
     }
 
+
     /**
      * @param $query
      * @param $orderNo
@@ -134,5 +135,16 @@ class Charge extends Model
     public function scopeOfPaidOrderNo($query, $orderNo)
     {
         return $query->where('order_no', $orderNo)->where('paid', 1);
+    }
+
+    /**
+     * @param $query
+     * @param $tradeNo
+     * @return mixed
+     */
+    public function scopeOfOutTradeNo($query, $tradeNo)
+    {
+        return $query->where('out_trade_no', $tradeNo);
+
     }
 }

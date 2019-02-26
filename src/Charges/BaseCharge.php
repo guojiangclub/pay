@@ -16,17 +16,17 @@ use iBrand\Component\Pay\Contracts\PayChargeContract;
 
 abstract class BaseCharge implements PayChargeContract
 {
-    protected function getWxPayCode($order_sn, $channel)
+    protected function getOutTradeNo($order_sn, $channel)
     {
         switch ($channel) {
             case 'wx_pub':
             case 'wx_pub_qr':
             case 'wx_lite':
                 $client = new Client();
-
                 return 'wx_'.$client->formatedId('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-', 24);
             default:
-                return $order_sn;
+                $client = new Client();
+                return 'ali_'.$client->formatedId('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-', 24);
         }
     }
 
