@@ -160,20 +160,15 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
         if ('alipay_pc_direct' == $data['channel']) {
 
             $ali_pay = Pay::alipay($config)->web($chargeData);
-            $key = base64_encode($out_trade_no);
-            /*return [
-                'type' => $type,
-                'order_no' => $order_no,
-                'channel' => $channel,
-                'pay_scene' => 'live',
-                'key' => $key,
-            ];*/
+            return [
+                'alipay' => html_entity_decode($ali_pay),
+            ];
         }
 
         if ('alipay_wap' == $data['channel']) {
             $ali_pay = Pay::alipay($config)->wap($chargeData);
             return [
-                'alipay_wap' => html_entity_decode($ali_pay),
+                'alipay' => html_entity_decode($ali_pay),
             ];
         }
     }
