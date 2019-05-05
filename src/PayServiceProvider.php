@@ -12,6 +12,7 @@
 namespace iBrand\Component\Pay;
 
 use iBrand\Component\Pay\Charges\DefaultCharge;
+use iBrand\Component\Pay\Charges\UnionCharge;
 use iBrand\Component\Pay\Contracts\PayChargeContract;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -25,59 +26,62 @@ use InvalidArgumentException;
  */
 class PayServiceProvider extends ServiceProvider
 {
-    protected $namespace = 'iBrand\Component\Pay\Http\Controllers';
+	protected $namespace = 'iBrand\Component\Pay\Http\Controllers';
 
-    /**
-     *  Boot the service provider.
-     */
-    public function boot()
-    {
-        if (!class_exists('CreatePayTables')) {
-            $timestamp = date('Y_m_d_His', time());
-            $this->publishes([
-                __DIR__.'/../migrations/create_pay_tables.php.stub' => database_path()."/migrations/{$timestamp}_create_pay_tables.php",
-            ], 'migrations');
-        }
+	/**
+	 *  Boot the service provider.
+	 */
+	public function boot()
+	{
+		if (!class_exists('CreatePayTables')) {
+			$timestamp = date('Y_m_d_His', time());
+			$this->publishes([
+				__DIR__ . '/../migrations/create_pay_tables.php.stub' => database_path() . "/migrations/{$timestamp}_create_pay_tables.php",
+			], 'migrations');
+		}
 
-        if ($this->app->runningInConsole()) {
-            $this->publishes([
-                __DIR__.'/config.php' => config_path('ibrand/pay.php'),
-            ]);
-        }
+		if ($this->app->runningInConsole()) {
+			$this->publishes([
+				__DIR__ . '/config.php' => config_path('ibrand/pay.php'),
+			]);
+		}
 
-        $this->loadRoutes();
-    }
+		$this->loadRoutes();
+	}
 
-    /**
-     * Register the service provider.
-     */
-    public function register()
-    {
-        $this->mergeConfigFrom(
-            __DIR__.'/config.php', 'ibrand.pay'
-        );
+	/**
+	 * Register the service provider.
+	 */
+	public function register()
+	{
+		$this->mergeConfigFrom(
+			__DIR__ . '/config.php', 'ibrand.pay'
+		);
 
-        $config = config('ibrand.pay');
+		$config = config('ibrand.pay');
 
-        $this->app->singleton(PayChargeContract::class, function () use ($config) {
-            switch ($config['driver']) {
-                case 'default':
-                    return new DefaultCharge();
-            }
+		$this->app->singleton(PayChargeContract::class, function () use ($config) {
+			switch ($config['driver']) {
+				case 'default':
+					return new DefaultCharge();
+				case 'union':
+					return new UnionCharge();
+			}
 
-            throw new InvalidArgumentException("Unsupported driver [{$config['driver']}]");
-        });
+			throw new InvalidArgumentException("Unsupported driver [{$config['driver']}]");
+		});
 
-        $this->app->alias(PayChargeContract::class, 'ibrand.pay.charge');
-    }
+		$this->app->alias(PayChargeContract::class, 'ibrand.pay.charge');
+	}
 
-    public function loadRoutes()
-    {
-        $routeAttr = config('ibrand.pay.route', []);
+	public function loadRoutes()
+	{
+		$routeAttr = config('ibrand.pay.route', []);
 
-        Route::group(array_merge(['namespace' => $this->namespace], $routeAttr), function ($router) {
-            $router->post('wechat/{app}', 'WechatPayNotifyController@notify')->name('pay.wechat.notify');
-            $router->post('alipay/{app}', 'AlipayNotifyController@notify')->name('pay.alipay.notify');
-        });
-    }
+		Route::group(array_merge(['namespace' => $this->namespace], $routeAttr), function ($router) {
+			$router->post('wechat/{app}', 'WechatPayNotifyController@notify')->name('pay.wechat.notify');
+			$router->post('alipay/{app}', 'AlipayNotifyController@notify')->name('pay.alipay.notify');
+			$router->post('union/{channel}', 'UnionPayNotifyController@notify')->name('pay.union.notify');
+		});
+	}
 }
