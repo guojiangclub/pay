@@ -87,32 +87,30 @@ return [
 		],
 	],
 	'union'   => [
-		'support'    => ['wx_lite', 'alipay_wap'],
+		'support'    => ['wx_lite', 'wx_pub', 'alipay_wap'],
 		'wx_lite'    => [
-			'mid'          => env('UNION_WX_LITE_MID', ''),
-			'tid'          => env('UNION_WX_LITE_TID', ''),
-			'instMid'      => env('UNION_WX_LITE_INSTMID', ''),
-			'msgSrc'       => env('UNION_WX_LITE_MSGSRC', ''),
-			'signKey'      => env('UNION_WX_LITE_SIGNKEY', ''),
-			/*
-			|--------------------------------------------------------------------------
-			| 分账标记：当为true时，请求参数必须包含platformAmount【平台金额】，subOrders【分账金额】
-			| subOrders中totalAmount的总和 + platformAmount 必须等于 支付总金额【totalAmount】
-			| Available Settings: "false", "true"
-			|--------------------------------------------------------------------------
-			|
-			| 'subOrders' => [
-			|      [
-			|          'mid'         => sub_mid,
-			|          'totalAmount' => amount,
-			|      ]
-			| ],
-			|
-			*/
-			'divisionFlag' => env('UNION_WX_LITE_DIVISIONFLAG', false),
+			'mid'      => env('UNION_WX_LITE_MID', ''),
+			'tid'      => env('UNION_WX_LITE_TID', ''),
+			'instMid'  => env('UNION_WX_LITE_INSTMID', ''),
+			'msgSrc'   => env('UNION_WX_LITE_MSGSRC', ''),
+			'msgSrcId' => env('UNION_WX_LITE_MSGSRCID', ''),
+			'signKey'  => env('UNION_WX_LITE_SIGNKEY', ''),
+		],
+		'wx_pub'     => [
+			'mid'      => env('UNION_WX_PUB_MID', ''),
+			'tid'      => env('UNION_WX_PUB_TID', ''),
+			'instMid'  => env('UNION_WX_PUB_INSTMID', ''),
+			'msgSrc'   => env('UNION_WX_PUB_MSGSRC', ''),
+			'msgSrcId' => env('UNION_WX_PUB_MSGSRCID', ''),
+			'signKey'  => env('UNION_WX_PUB_SIGNKEY', ''),
 		],
 		'alipay_wap' => [
-
+			'mid'      => env('UNION_ALI_PAY_WAP_MID', ''),
+			'tid'      => env('UNION_ALI_PAY_WAP_TID', ''),
+			'instMid'  => env('UNION_ALI_PAY_WAP_INSTMID', ''),
+			'msgSrc'   => env('UNION_ALI_PAY_WAP_MSGSRC', ''),
+			'msgSrcId' => env('UNION_ALI_PAY_WAP_MSGSRCID', ''),
+			'signKey'  => env('UNION_ALI_PAY_WAP_SIGNKEY', ''),
 		],
 	],
 ];

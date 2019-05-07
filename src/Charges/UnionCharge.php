@@ -10,7 +10,10 @@ use GuzzleHttp\Client;
 class UnionCharge extends BaseCharge implements PayChargeContract
 {
 
-	const CHARGE_URL = 'https://qr.chinaums.com/netpay-route-server/api/';
+	const MINI_PROGRAM_CHARGE_URL = 'https://qr.chinaums.com/netpay-route-server/api/';
+
+	const WEB_PAY_CHARGE_URL = 'https://qr.chinaums.com/netpay-portal/webpay/pay.do';
+	//const WEB_PAY_CHARGE_URL = 'https://qr-test2.chinaums.com/netpay-portal/webpay/pay.do';
 
 	/**
 	 * 创建支付请求
@@ -56,8 +59,14 @@ class UnionCharge extends BaseCharge implements PayChargeContract
 				case 'wx_lite':
 					$credential = $this->createMiniProgramCharge($data, $type, $app, $config);
 					break;
+				case 'wx_pub':
+					$config['msgType'] = 'WXPay.jsPay';
+					$credential        = $this->createWapCharge($data, $type, $app, $config);
+					break;
 				case 'alipay_wap':
-					$credential = $this->createAliPayWapCharge($data, $type, $config);
+					$config['msgType'] = 'trade.jsPay';
+					$credential        = $this->createWapCharge($data, $type, $app, $config);
+					break;
 			}
 
 			$payModel->credential = $credential;
@@ -100,7 +109,7 @@ class UnionCharge extends BaseCharge implements PayChargeContract
 			'tradeType'        => 'MINI',
 		];
 
-		if ($config['divisionFlag']) {
+		if (isset($data['divisionFlag']) && $data['divisionFlag']) {
 			$division   = [
 				'divisionFlag'   => true,
 				'platformAmount' => $data['platformAmount'],
@@ -116,7 +125,7 @@ class UnionCharge extends BaseCharge implements PayChargeContract
 		];
 
 		$cli      = new Client();
-		$response = $cli->post(self::CHARGE_URL, $options);
+		$response = $cli->post(self::MINI_PROGRAM_CHARGE_URL, $options);
 		$contents = $response->getBody()->getContents();
 		$result   = json_decode($contents, true);
 		if (empty($result) || !isset($result['miniPayRequest']) || $result['errCode'] != 'SUCCESS') {
@@ -127,9 +136,50 @@ class UnionCharge extends BaseCharge implements PayChargeContract
 		return $result;
 	}
 
-	public function createAliPayWapCharge($data, $type, $config)
+	public function createWapCharge($data, $type, $app, $config)
 	{
+		$params = [
+			'attachedData'     => [
+				'type'    => $type,
+				'channel' => $data['channel'],
+			],
+			'msgSrc'           => $config['msgSrc'],
+			'msgType'          => $config['msgType'],
+			'requestTimestamp' => date('Y-m-d H:i:s'),
+			'merOrderId'       => $data['order_no'],
+			'mid'              => $config['mid'],
+			'tid'              => $config['tid'],
+			'instMid'          => $config['instMid'],
+			'totalAmount'      => $data['amount'],
+			'notifyUrl'        => $config['notifyUrl'],
+			'returnUrl'        => $data['returnUrl'],
+			'signType'         => 'MD5',
+		];
 
+		if ($config['msgType'] == 'WXPay.jsPay') {
+			$params['subOpenId'] = $data['openid'];
+			$params['subAppId']  = config('ibrand.wechat.official_account.' . $app . '.app_id');
+		}
+
+		$params['sign'] = $this->makeSign($params, $config['signKey']);
+		$buff           = "";
+		foreach ($params as $k => $v) {
+			if ($v !== "" && !is_array($v) && !in_array($k, ['requestTimestamp', 'notifyUrl', 'returnUrl', 'divisionFlag'])) {
+				$buff .= $k . "=" . $v . "&";
+			} elseif ($k == "divisionFlag") {
+				$buff .= $k . "=true&";
+			} elseif ($k == "requestTimestamp" || $k == "notifyUrl" || $k == "returnUrl") {
+				$buff .= $k . "=" . urlencode($v) . "&";
+			} elseif ($v !== "" && is_array($v) && !empty($v) && !in_array($k, ['requestTimestamp', 'notifyUrl', 'returnUrl', 'divisionFlag'])) {
+				$buff .= $k . "=" . urlencode(json_encode($v)) . "&";
+			} else {
+				continue;
+			}
+		}
+
+		$buff = trim($buff, "&");
+
+		return ['url' => self::WEB_PAY_CHARGE_URL . '?' . $buff];
 	}
 
 	/**
@@ -170,7 +220,7 @@ class UnionCharge extends BaseCharge implements PayChargeContract
 	 *
 	 * @return string
 	 */
-	public static function toUrlParams(array $config)
+	public function toUrlParams(array $config)
 	{
 		$buff = "";
 		foreach ($config as $k => $v) {
