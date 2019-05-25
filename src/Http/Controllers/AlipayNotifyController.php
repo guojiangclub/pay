@@ -40,7 +40,7 @@ class AlipayNotifyController extends Controller
             $charge->paid = 1;
             $charge->save();
 
-            if ($charge->amount !== $data['total_amount'] * 100) {
+            if ($charge->amount !== intval($data['total_amount'] * 100)) {
                 return response('支付失败', 500);
             }
 
