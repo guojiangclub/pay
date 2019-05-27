@@ -187,29 +187,51 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
             $order['type'] = 'miniapp';
         }
 
-        try {
-            $result = Pay::wechat($config)->find($order);
-            $charge->transaction_meta = json_encode($result);
-            $charge->transaction_no = $result['transaction_id'];
-            $charge->time_paid = Carbon::createFromTimestamp(strtotime($result['time_end']));
-            $charge->paid = 1;
-            $charge->save();
+        if ('alipay_pc_direct' == $charge->channel || 'alipay_wap' == $charge->channel) {
 
+            $config = config('ibrand.pay.default.alipay.' . $charge->app);
+
+            $result = Pay::alipay($config)->find($order);
+
+            if ($result['trade_status'] == "TRADE_SUCCESS" || $result['trade_status'] == "TRADE_FINISHED") {
+                $charge->transaction_meta = json_encode($result);
+                $charge->transaction_no = $result['trade_no'];
+                $charge->time_paid = Carbon::now();
+                $charge->paid = 1;
+                $charge->save();
+            }else{
+                $charge->transaction_meta = json_encode($result);
+                $charge->save();
+            }
             return $charge;
-        } catch (PayException $exception) {
-            $result = $exception->raw;
-            if ('FAIL' == $result['return_code']) {
-                $charge->failure_code = $result['return_code'];
-                $charge->failure_msg = $result['return_msg'];
+
+        } else {
+
+
+            try {
+                $result = Pay::wechat($config)->find($order);
+                $charge->transaction_meta = json_encode($result);
+                $charge->transaction_no = $result['transaction_id'];
+                $charge->time_paid = Carbon::createFromTimestamp(strtotime($result['time_end']));
+                $charge->paid = 1;
                 $charge->save();
 
                 return $charge;
-            }
+            } catch (PayException $exception) {
+                $result = $exception->raw;
+                if ('FAIL' == $result['return_code']) {
+                    $charge->failure_code = $result['return_code'];
+                    $charge->failure_msg = $result['return_msg'];
+                    $charge->save();
 
-            if ('FAIL' == $result['result_code'] || 'SUCCESS' != $result['trade_state']) {
-                $charge->failure_code = $result['err_code'];
-                $charge->failure_msg = $result['err_code_des'];
-                $charge->save();
+                    return $charge;
+                }
+
+                if ('FAIL' == $result['result_code'] || 'SUCCESS' != $result['trade_state']) {
+                    $charge->failure_code = $result['err_code'];
+                    $charge->failure_msg = $result['err_code_des'];
+                    $charge->save();
+                }
             }
         }
     }
