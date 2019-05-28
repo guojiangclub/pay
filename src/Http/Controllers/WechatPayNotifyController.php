@@ -42,7 +42,7 @@ class WechatPayNotifyController extends Controller
                 $charge->paid = 1;
                 $charge->save();
 
-                if ($charge->amount !== $data['total_fee']) {
+                if ($charge->amount !== intval($data['total_fee'])) {
                     return response('支付失败', 500);
                 }
 
