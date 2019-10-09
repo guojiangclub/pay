@@ -3,7 +3,7 @@
 /*
  * This file is part of ibrand/pay.
  *
- * (c) iBrand <https://www.ibrand.cc>
+ * (c) 果酱社区 <https://guojiang.club>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -23,9 +23,11 @@ abstract class BaseCharge implements PayChargeContract
             case 'wx_pub_qr':
             case 'wx_lite':
                 $client = new Client();
+
                 return 'wx_'.$client->formatedId('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-', 24);
             default:
                 $client = new Client();
+
                 return 'ali_'.$client->formatedId('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-', 24);
         }
     }

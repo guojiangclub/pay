@@ -3,7 +3,7 @@
 /*
  * This file is part of ibrand/pay.
  *
- * (c) iBrand <https://www.ibrand.cc>
+ * (c) 果酱社区 <https://guojiang.club>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -23,9 +23,9 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
     /**
      * 创建支付请求
      *
-     * @param array $data 支付数据
-     * @param string $type 业务类型
-     * @param string $app 支付参数APP，config payments 数组中的配置项名称
+     * @param array  $data   支付数据
+     * @param string $type   业务类型
+     * @param string $app    支付参数APP，config payments 数组中的配置项名称
      * @param Charge $charge model.
      *
      * @return mixed
@@ -44,7 +44,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
             $charge = Charge::where('order_no', $data['order_no'])->where('paid', true)->first();
 
             if ($charge) {
-                throw new GatewayException('订单：' . $data['order_no'] . '已支付');
+                throw new GatewayException('订单：'.$data['order_no'].'已支付');
             }
 
             $modelData = array_merge(['app' => $app, 'type' => $type], array_only($data, ['channel', 'order_no', 'client_ip', 'subject', 'amount', 'body', 'extra', 'time_expire', 'metadata', 'description']));
@@ -61,13 +61,13 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
                 case 'wx_pub':
                 case 'wx_pub_qr':
                 case 'wx_lite':
-                    $config = config('ibrand.pay.default.wechat.' . $app);
+                    $config = config('ibrand.pay.default.wechat.'.$app);
                     $config['notify_url'] = route('pay.wechat.notify', ['app' => $app]);
                     $credential = $this->createWechatCharge($data, $config, $out_trade_no);
                     break;
                 case 'alipay_wap':
                 case 'alipay_pc_direct':
-                    $config = config('ibrand.pay.default.alipay.' . $app);
+                    $config = config('ibrand.pay.default.alipay.'.$app);
                     $config['notify_url'] = route('pay.alipay.notify', ['app' => $app]);
                     $credential = $this->createAlipayCharge($data, $config, $out_trade_no);
             }
@@ -141,7 +141,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
         ];
 
         if (isset($data['time_expire']) && ($gap = strtotime($data['time_expire']) - Carbon::now()->timestamp) > 0) {
-            $chargeData['timeout_express'] = floor($gap / 60) . 'm';
+            $chargeData['timeout_express'] = floor($gap / 60).'m';
         }
 
         if (isset($data['metadata'])) {
@@ -158,8 +158,8 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
         }
 
         if ('alipay_pc_direct' == $data['channel']) {
-
             $ali_pay = Pay::alipay($config)->web($chargeData);
+
             return [
                 'alipay' => html_entity_decode($ali_pay),
             ];
@@ -167,6 +167,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
 
         if ('alipay_wap' == $data['channel']) {
             $ali_pay = Pay::alipay($config)->wap($chargeData);
+
             return [
                 'alipay' => html_entity_decode($ali_pay),
             ];
@@ -177,7 +178,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
     {
         $charge = Charge::where('charge_id', $charge_id)->first();
 
-        $config = config('ibrand.pay.default.wechat.' . $charge->app);
+        $config = config('ibrand.pay.default.wechat.'.$charge->app);
 
         $order = [
             'out_trade_no' => $charge->out_trade_no,
@@ -188,50 +189,47 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
         }
 
         if ('alipay_pc_direct' == $charge->channel || 'alipay_wap' == $charge->channel) {
-
-            $config = config('ibrand.pay.default.alipay.' . $charge->app);
+            $config = config('ibrand.pay.default.alipay.'.$charge->app);
 
             $result = Pay::alipay($config)->find($order);
 
-            if ($result['trade_status'] == "TRADE_SUCCESS" || $result['trade_status'] == "TRADE_FINISHED") {
+            if ('TRADE_SUCCESS' == $result['trade_status'] || 'TRADE_FINISHED' == $result['trade_status']) {
                 $charge->transaction_meta = json_encode($result);
                 $charge->transaction_no = $result['trade_no'];
                 $charge->time_paid = Carbon::now();
                 $charge->paid = 1;
                 $charge->save();
-            }else{
+            } else {
                 $charge->transaction_meta = json_encode($result);
                 $charge->save();
             }
+
             return $charge;
+        }
 
-        } else {
+        try {
+            $result = Pay::wechat($config)->find($order);
+            $charge->transaction_meta = json_encode($result);
+            $charge->transaction_no = $result['transaction_id'];
+            $charge->time_paid = Carbon::createFromTimestamp(strtotime($result['time_end']));
+            $charge->paid = 1;
+            $charge->save();
 
-
-            try {
-                $result = Pay::wechat($config)->find($order);
-                $charge->transaction_meta = json_encode($result);
-                $charge->transaction_no = $result['transaction_id'];
-                $charge->time_paid = Carbon::createFromTimestamp(strtotime($result['time_end']));
-                $charge->paid = 1;
+            return $charge;
+        } catch (PayException $exception) {
+            $result = $exception->raw;
+            if ('FAIL' == $result['return_code']) {
+                $charge->failure_code = $result['return_code'];
+                $charge->failure_msg = $result['return_msg'];
                 $charge->save();
 
                 return $charge;
-            } catch (PayException $exception) {
-                $result = $exception->raw;
-                if ('FAIL' == $result['return_code']) {
-                    $charge->failure_code = $result['return_code'];
-                    $charge->failure_msg = $result['return_msg'];
-                    $charge->save();
+            }
 
-                    return $charge;
-                }
-
-                if ('FAIL' == $result['result_code'] || 'SUCCESS' != $result['trade_state']) {
-                    $charge->failure_code = $result['err_code'];
-                    $charge->failure_msg = $result['err_code_des'];
-                    $charge->save();
-                }
+            if ('FAIL' == $result['result_code'] || 'SUCCESS' != $result['trade_state']) {
+                $charge->failure_code = $result['err_code'];
+                $charge->failure_msg = $result['err_code_des'];
+                $charge->save();
             }
         }
     }

@@ -3,13 +3,13 @@
 /*
  * This file is part of ibrand/pay.
  *
- * (c) iBrand <https://www.ibrand.cc>
+ * (c) 果酱社区 <https://guojiang.club>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
 
-namespace iBrand\Component\Pay\Http\Controllers;
+namespace iBrand\Component\Pay\Controllers;
 
 use Carbon\Carbon;
 use iBrand\Component\Pay\Facades\PayNotify;
@@ -20,14 +20,13 @@ class AlipayNotifyController extends Controller
 {
     public function notify($app)
     {
-        $config = config('ibrand.pay.default.alipay.' . $app);
+        $config = config('ibrand.pay.default.alipay.'.$app);
 
         $pay = Pay::alipay($config);
 
         $data = $pay->verify();
 
-        if ($data['trade_status'] == "TRADE_SUCCESS" || $data['trade_status'] == "TRADE_FINISHED") {
-
+        if ('TRADE_SUCCESS' == $data['trade_status'] || 'TRADE_FINISHED' == $data['trade_status']) {
             $charge = \iBrand\Component\Pay\Models\Charge::ofOutTradeNo($data['out_trade_no'])->first();
 
             if (!$charge) {
@@ -48,6 +47,7 @@ class AlipayNotifyController extends Controller
 
             return $pay->success();
         }
+
         return response('alipay notify fail.', 500);
     }
 }

@@ -3,7 +3,7 @@
 /*
  * This file is part of ibrand/pay.
  *
- * (c) iBrand <https://www.ibrand.cc>
+ * (c) 果酱社区 <https://guojiang.club>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -40,7 +40,7 @@ class Charge extends Model
 
         $client = new Client();
 
-        $this->charge_id = 'ch_' . $client->generateId($size = 24);
+        $this->charge_id = 'ch_'.$client->generateId($size = 24);
     }
 
     /**
@@ -126,10 +126,10 @@ class Charge extends Model
         return $query->where('charge_id', $chargeId);
     }
 
-
     /**
      * @param $query
      * @param $orderNo
+     *
      * @return mixed
      */
     public function scopeOfPaidOrderNo($query, $orderNo)
@@ -140,11 +140,11 @@ class Charge extends Model
     /**
      * @param $query
      * @param $tradeNo
+     *
      * @return mixed
      */
     public function scopeOfOutTradeNo($query, $tradeNo)
     {
         return $query->where('out_trade_no', $tradeNo);
-
     }
 }

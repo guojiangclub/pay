@@ -3,7 +3,7 @@
 /*
  * This file is part of ibrand/pay.
  *
- * (c) iBrand <https://www.ibrand.cc>
+ * (c) 果酱社区 <https://guojiang.club>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -25,7 +25,7 @@ use InvalidArgumentException;
  */
 class PayServiceProvider extends ServiceProvider
 {
-    protected $namespace = 'iBrand\Component\Pay\Http\Controllers';
+    protected $namespace = 'iBrand\Component\Pay\Controllers';
 
     /**
      *  Boot the service provider.
@@ -44,6 +44,8 @@ class PayServiceProvider extends ServiceProvider
                 __DIR__.'/config.php' => config_path('ibrand/pay.php'),
             ]);
         }
+
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'ibrand.pay');
 
         $this->loadRoutes();
     }
@@ -78,6 +80,16 @@ class PayServiceProvider extends ServiceProvider
         Route::group(array_merge(['namespace' => $this->namespace], $routeAttr), function ($router) {
             $router->post('wechat/{app}', 'WechatPayNotifyController@notify')->name('pay.wechat.notify');
             $router->post('alipay/{app}', 'AlipayNotifyController@notify')->name('pay.alipay.notify');
+        });
+
+        Route::group(array_merge(['namespace' => $this->namespace], ['middleware' => ['web']]), function ($router) {
+            $router->get('payment/getCode', 'OfficialAccountController@getCode')->name('payment.wechat.getCode');
+            $router->get('payment/wxPay', 'OfficialAccountController@wxPay')->name('payment.wechat.wxPay');
+
+            $router->get('payment/alipay', 'AlipayController@pay')->name('payment.alipay.pay');
+
+            $router->get('payment/wechat/mock', 'OfficialAccountTestController@mock');
+            $router->get('payment/alipay/mock/wap', 'AlipayTestController@wap');
         });
     }
 }
