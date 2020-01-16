@@ -35,17 +35,17 @@ class PayServiceProvider extends ServiceProvider
         if (!class_exists('CreatePayTables')) {
             $timestamp = date('Y_m_d_His', time());
             $this->publishes([
-                __DIR__.'/../migrations/create_pay_tables.php.stub' => database_path()."/migrations/{$timestamp}_create_pay_tables.php",
+	            __DIR__ . '/../migrations/create_pay_tables.php.stub' => database_path()."/migrations/{$timestamp}_create_pay_tables.php",
             ], 'migrations');
         }
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/config.php' => config_path('ibrand/pay.php'),
+	            __DIR__ . '/config.php' => config_path('ibrand/pay.php'),
             ]);
         }
 
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'ibrand.pay');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'ibrand.pay');
 
         $this->loadRoutes();
     }
@@ -56,7 +56,7 @@ class PayServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/config.php', 'ibrand.pay'
+            __DIR__ . '/config.php', 'ibrand.pay'
         );
 
         $config = config('ibrand.pay');
