@@ -79,6 +79,8 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
 
             return $payModel;
         } catch (\Yansongda\Pay\Exceptions\Exception $exception) {
+            \Log::info($exception->getMessage());
+
             throw  new GatewayException('支付通道错误');
         }
     }
@@ -127,7 +129,7 @@ class DefaultCharge extends BaseCharge implements PayChargeContract
 	        case 'wx_app':
 		        $pay = Pay::wechat($config)->app($chargeData);
 
-		        return ['wechat' => $pay];
+		        return ['wechat' => json_decode($pay->getContent(), true)];
             default:
                 return null;
         }
