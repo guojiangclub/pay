@@ -41,18 +41,5 @@
 		}
 	},
 	"minimum-stability": "dev",
-	"prefer-stable": true,
-	"repositories": [
-		{
-			"packagist": false
-		},
-		{
-			"type": "composer",
-			"url": "https://mirrors.aliyun.com/composer/"
-		},
-		{
-			"type": "vcs",
-			"url": "https://github.com/guojiangclub/base-pay.git"
-		}
-	]
+	"prefer-stable": true
 }
