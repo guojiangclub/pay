@@ -41,5 +41,14 @@
 		}
 	},
 	"minimum-stability": "dev",
-	"prefer-stable": true
+	"prefer-stable": true,
+	"repositories": [
+		{
+			"packagist": false
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/guojiangclub/base-pay.git"
+		}
+	]
 }
