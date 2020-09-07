@@ -36,11 +36,11 @@ class Charge extends Model
      */
     public function __construct(array $attributes = [])
     {
-        parent::__construct($attributes);
-
         $client = new Client();
 
         $this->charge_id = 'ch_'.$client->generateId($size = 24);
+
+        parent::__construct($attributes);
     }
 
     /**
